@@ -1,3 +1,6 @@
+#include "epd_driver.h"
+#include "epd_highlevel.h"
+#include "firacode_bold.h"
 #include "weather.h"
 #include <esp_event.h>
 #include <esp_log.h>
@@ -13,6 +16,7 @@
 #define WAKEUP_TIME_SEC 1800
 static const char *TAG = "E-WEATHER-MAIN";
 static EventGroupHandle_t wifi_event_group;
+static EpdiyHighlevelState hl;
 
 static void event_handler(
     void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -68,6 +72,23 @@ void wifi_init(void)
     vEventGroupDelete(wifi_event_group);
 }
 
+void epd_setup()
+{
+    epd_init(EPD_OPTIONS_DEFAULT);
+    hl = epd_hl_init(EPD_BUILTIN_WAVEFORM);
+}
+
+void show_weather(int temperature, uint8_t *fb, const char *weather)
+{
+    int cursor_x = 12;
+    int cursor_y = 24;
+
+    EpdFontProperties font_props = epd_font_properties_default();
+    font_props.flags = EPD_DRAW_ALIGN_LEFT;
+    epd_write_string(&FiraCode_Bold, weather, &cursor_x, &cursor_y, fb, &font_props);
+    epd_hl_update_screen(&hl, MODE_GC16, temperature);
+}
+
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -79,11 +100,20 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    epd_setup();
+    int temperature = 25;
+
+    epd_poweron();
+    epd_fullclear(&hl, temperature);
+    uint8_t *fb = epd_hl_get_framebuffer(&hl);
+
     wifi_init();
 
-    ESP_LOGI(TAG, "Connected to AP");
     const char *weather = get_weather("Frasso Telesino");
     ESP_LOGI(TAG, "weather \n %s", weather);
+    show_weather(temperature, fb, weather);
+
+    epd_poweroff();
 
     ESP_LOGI(TAG, "Enabling timer wakeup, %ds", WAKEUP_TIME_SEC);
     ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(WAKEUP_TIME_SEC * 1000000));
