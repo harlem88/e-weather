@@ -1,6 +1,8 @@
+#include "weather.h"
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_netif.h>
+#include <esp_sleep.h>
 #include <esp_wifi.h>
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
@@ -8,7 +10,7 @@
 #include <nvs_flash.h>
 
 #define WIFI_CONNECTED_BIT BIT0
-
+#define WAKEUP_TIME_SEC 1800
 static const char *TAG = "E-WEATHER-MAIN";
 static EventGroupHandle_t wifi_event_group;
 
@@ -80,7 +82,14 @@ void app_main(void)
     wifi_init();
 
     ESP_LOGI(TAG, "Connected to AP");
+    const char *weather = get_weather("Frasso Telesino");
+    ESP_LOGI(TAG, "weather \n %s", weather);
 
-    while (1) {
-    }
+    ESP_LOGI(TAG, "Enabling timer wakeup, %ds", WAKEUP_TIME_SEC);
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(WAKEUP_TIME_SEC * 1000000));
+
+    ESP_LOGI(TAG, "Entering deep sleep");
+
+    esp_wifi_stop();
+    esp_deep_sleep_start();
 }
