@@ -4,3 +4,5 @@ sdkconfig.old
 
 .idea/
 cmake-build-debug-xtensa/
+
+components/epd_driver
