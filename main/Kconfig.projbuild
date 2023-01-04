@@ -1,4 +1,4 @@
-menu "E_WEATHER WiFi Configuration"
+menu "E-WEATHER WiFi Configuration"
 config E_WEATHER_WIFI_SSID
     string "WiFi SSID"
     default "myssid"
